@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Categories=AudioVideo;Audio;
+Name=JTuner
+Icon=jtuner
+Exec=/usr/bin/jtuner
