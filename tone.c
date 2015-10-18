@@ -26,7 +26,7 @@
 #define N_OVERTONES 16
 
 #define MIN_FREQ 20
-#define MAX_FREQ 4000
+#define MAX_FREQ 10000
 
 #define SQRT_2 1.41421356237
 
