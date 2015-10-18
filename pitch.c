@@ -21,14 +21,28 @@
 
 #include <math.h>
 
+#define INVALID_PITCH -100
+
+float calc_target (const TunerConfig * config)
+{
+    if (! config->target_octave)
+        return 0;
+
+    float a440 = 440 * powf (2, config->pitch_adjust / 12);
+    float octave = powf (2, 1 + config->octave_stretch / 12);
+    float scale = 12 * config->target_octave - 57;
+
+    return a440 * powf (octave, scale / 12);
+}
+
 DetectState pitch_identify (const TunerConfig * config, float tone, int * pitch, float * off_by)
 {
     float a440 = 440 * powf (2, config->pitch_adjust / 12);
     float octave = powf (2, 1 + config->octave_stretch / 12);
     float scale = 12 * logf (tone / a440) / logf (octave);
-    int newpitch = lroundf (scale);
+    int newpitch = tone ? lroundf (scale) : INVALID_PITCH;
 
-    static int lastpitch = -1;
+    static int lastpitch = INVALID_PITCH;
     static int timein = 0;
     static int timeout = 0;
 
@@ -54,6 +68,9 @@ DetectState pitch_identify (const TunerConfig * config, float tone, int * pitch,
 
     if (timein)
         return DETECT_KEEP;
+
+    if (newpitch == INVALID_PITCH)
+        return DETECT_NONE;
 
     * pitch = 57 + newpitch;
     * off_by = scale - newpitch;

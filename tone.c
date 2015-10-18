@@ -28,6 +28,8 @@
 #define MIN_FREQ 20
 #define MAX_FREQ 4000
 
+#define SQRT_2 1.41421356237
+
 void find_peaks (const float freqs[N_FREQS], float peaks[N_PEAKS], float levels[N_PEAKS])
 {
     char skip[N_FREQS] = {0};
@@ -131,7 +133,7 @@ float calc_harm_stretch (float peaks[N_PEAKS], float levels[N_PEAKS], float root
     return stretchsum / levelsum;
 }
 
-float tone_detect (const float freqs[N_FREQS], float * harm_stretch)
+float tone_detect (const float freqs[N_FREQS], float target, float * harm_stretch)
 {
     float levels[N_PEAKS];
     float peaks[N_PEAKS];
@@ -143,6 +145,9 @@ float tone_detect (const float freqs[N_FREQS], float * harm_stretch)
 
     for (int p = 0; p < N_PEAKS; p ++)
     {
+        if (target && (peaks[p] < target / SQRT_2 || peaks[p] > target * SQRT_2))
+            continue;
+
         float score = calc_harm_score (peaks, levels, peaks[p]);
 
         if (score > topscore)

@@ -65,6 +65,13 @@ static void adjust_stretch (GtkWidget * spin)
     pthread_mutex_unlock (& mutex);
 }
 
+static void adjust_target (GtkWidget * spin)
+{
+    pthread_mutex_lock (& mutex);
+    config.target_octave = gtk_spin_button_get_value ((GtkSpinButton *) spin);
+    pthread_mutex_unlock (& mutex);
+}
+
 static void error_exit (const char * error)
 {
     fprintf (stderr, "%s\n", error);
@@ -94,7 +101,8 @@ static void * io_worker (void * arg)
 
         TunerStatus new_status;
 
-        new_status.tone = tone_detect (freqs, & new_status.harm_stretch);
+        float target = calc_target (& config);
+        new_status.tone = tone_detect (freqs, target, & new_status.harm_stretch);
         new_status.state = pitch_identify (& config, new_status.tone,
          & new_status.pitch, & new_status.off_by);
 
@@ -156,6 +164,14 @@ int main (void)
     gtk_grid_attach ((GtkGrid *) grid, stretch_spin, 3, 1, 1, 1);
 
     g_signal_connect (stretch_spin, "value-changed", (GCallback) adjust_stretch, NULL);
+
+    gtk_grid_attach ((GtkGrid *) grid, gtk_label_new ("Target octave:"), 0, 2, 1, 1);
+
+    GtkWidget * target_spin = gtk_spin_button_new_with_range (0.0, 8.0, 0.1);
+    gtk_spin_button_set_value ((GtkSpinButton *) target_spin, 0.0);
+    gtk_grid_attach ((GtkGrid *) grid, target_spin, 1, 2, 1, 1);
+
+    g_signal_connect (target_spin, "value-changed", (GCallback) adjust_target, NULL);
 
     gtk_widget_show_all (window);
 

@@ -43,6 +43,7 @@ typedef enum {
 
 typedef struct {
     float pitch_adjust, octave_stretch;
+    float target_octave;
 } TunerConfig;
 
 typedef struct {
@@ -61,9 +62,10 @@ bool io_read_samples (float data[N_SAMPLES]);
 void io_cleanup (void);
 
 /* pitch.c */
+float calc_target (const TunerConfig * config);
 DetectState pitch_identify (const TunerConfig * config, float tone, int * pitch, float * off_by);
 
 /* tone.c */
-float tone_detect (const float freqs[N_FREQS], float * harm_stretch);
+float tone_detect (const float freqs[N_FREQS], float target, float * harm_stretch);
 
 #endif // JTUNER_H
