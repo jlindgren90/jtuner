@@ -26,16 +26,28 @@
 #define C4_SEMITONES  48  /* semitones from C0 to C4 */
 #define A4_TONE      440  /* concert pitch (A4 = 440 Hz) */
 
-static float semitones_to_ratio (const TunerConfig * config, float semitones)
+/* The following procedures use a quadratic adjustment to implement "stretched"
+ * tuning, where each semitone n (relative to middle C) is tuned sharper or
+ * flatter than equal temperament by s/2*(n/12)^2 semitones.  This results in
+ * each octave moving away from middle C being incrementally stretched by s
+ * semitones relative to the previous octave. */
+
+static float semitones_to_ratio (const TunerConfig * config, float n)
 {
-    float octave = powf (2, 1 + config->octave_stretch / 12);
-    return powf (octave, semitones / 12);
+    float s = config->octave_stretch;
+    float sign = (n > 0) ? 1 : -1;
+    return powf (2, n / 12 + sign * n * n * s / 3456);
 }
 
-static float ratio_to_semitones (const TunerConfig * config, float ratio)
+static float ratio_to_semitones (const TunerConfig * config, float x)
 {
-    float octave = powf (2, 1 + config->octave_stretch / 12);
-    return 12 * logf (ratio) / logf (octave);
+    float s = config->octave_stretch;
+
+    if (! s)  /* prevent division by zero */
+        return 12 * log2f (x);
+
+    float sign = (x > 1) ? 1 : -1;
+    return sign * (24 * sqrt (36 + sign * 6 * s * log2f (x)) - 144) / s;
 }
 
 static float c4_tone (const TunerConfig * config)
