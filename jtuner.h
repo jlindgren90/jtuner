@@ -42,7 +42,7 @@ typedef enum {
 } DetectState;
 
 typedef struct {
-    float pitch_adjust, octave_stretch;
+    float octave_stretch;
     float target_octave;
 } TunerConfig;
 

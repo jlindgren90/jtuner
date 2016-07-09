@@ -51,13 +51,6 @@ static gboolean queue_redraw (void * arg)
     return FALSE;
 }
 
-static void adjust_pitch (GtkWidget * spin)
-{
-    pthread_mutex_lock (& mutex);
-    config.pitch_adjust = gtk_spin_button_get_value ((GtkSpinButton *) spin);
-    pthread_mutex_unlock (& mutex);
-}
-
 static void adjust_stretch (GtkWidget * spin)
 {
     pthread_mutex_lock (& mutex);
@@ -151,27 +144,19 @@ int main (void)
 
     g_signal_connect (tuner, "draw", (GCallback) redraw, NULL);
 
-    gtk_grid_attach ((GtkGrid *) grid, gtk_label_new ("Pitch adjust (half steps):"), 0, 1, 1, 1);
-
-    GtkWidget * pitch_spin = gtk_spin_button_new_with_range (-1.0, 1.0, 0.01);
-    gtk_spin_button_set_value ((GtkSpinButton *) pitch_spin, config.pitch_adjust);
-    gtk_grid_attach ((GtkGrid *) grid, pitch_spin, 1, 1, 1, 1);
-
-    g_signal_connect (pitch_spin, "value-changed", (GCallback) adjust_pitch, NULL);
-
-    gtk_grid_attach ((GtkGrid *) grid, gtk_label_new ("Octave stretch (half steps):"), 2, 1, 1, 1);
+    gtk_grid_attach ((GtkGrid *) grid, gtk_label_new ("Octave stretch (semitones):"), 0, 1, 1, 1);
 
     GtkWidget * stretch_spin = gtk_spin_button_new_with_range (-1.0, 1.0, 0.01);
     gtk_spin_button_set_value ((GtkSpinButton *) stretch_spin, config.octave_stretch);
-    gtk_grid_attach ((GtkGrid *) grid, stretch_spin, 3, 1, 1, 1);
+    gtk_grid_attach ((GtkGrid *) grid, stretch_spin, 1, 1, 1, 1);
 
     g_signal_connect (stretch_spin, "value-changed", (GCallback) adjust_stretch, NULL);
 
-    gtk_grid_attach ((GtkGrid *) grid, gtk_label_new ("Target octave:"), 0, 2, 1, 1);
+    gtk_grid_attach ((GtkGrid *) grid, gtk_label_new ("Target octave:"), 2, 1, 1, 1);
 
     GtkWidget * target_spin = gtk_spin_button_new_with_range (0.0, 8.0, 0.1);
     gtk_spin_button_set_value ((GtkSpinButton *) target_spin, config.target_octave);
-    gtk_grid_attach ((GtkGrid *) grid, target_spin, 1, 2, 1, 1);
+    gtk_grid_attach ((GtkGrid *) grid, target_spin, 3, 1, 1, 1);
 
     g_signal_connect (target_spin, "value-changed", (GCallback) adjust_target, NULL);
 

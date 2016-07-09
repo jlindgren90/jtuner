@@ -28,18 +28,16 @@ float calc_target (const TunerConfig * config)
     if (! config->target_octave)
         return 0;
 
-    float a440 = 440 * powf (2, config->pitch_adjust / 12);
     float octave = powf (2, 1 + config->octave_stretch / 12);
     float scale = 12 * config->target_octave - 57;
 
-    return a440 * powf (octave, scale / 12);
+    return 440 * powf (octave, scale / 12);
 }
 
 DetectState pitch_identify (const TunerConfig * config, float tone, int * pitch, float * off_by)
 {
-    float a440 = 440 * powf (2, config->pitch_adjust / 12);
     float octave = powf (2, 1 + config->octave_stretch / 12);
-    float scale = 12 * logf (tone / a440) / logf (octave);
+    float scale = 12 * logf (tone / 440) / logf (octave);
     int newpitch = tone ? lroundf (scale) : INVALID_PITCH;
 
     static int lastpitch = INVALID_PITCH;
