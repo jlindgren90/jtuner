@@ -23,7 +23,7 @@
 
 #define INVALID_PITCH -100
 
-#define A4_SEMITONES  57  /* semitones from C0 to A4 */
+#define C4_SEMITONES  48  /* semitones from C0 to C4 */
 #define A4_TONE      440  /* concert pitch (A4 = 440 Hz) */
 
 static float semitones_to_ratio (const TunerConfig * config, float semitones)
@@ -38,18 +38,23 @@ static float ratio_to_semitones (const TunerConfig * config, float ratio)
     return 12 * logf (ratio) / logf (octave);
 }
 
+static float c4_tone (const TunerConfig * config)
+{
+    return A4_TONE / semitones_to_ratio (config, 9);
+}
+
 float calc_target (const TunerConfig * config)
 {
     if (! config->target_octave)
         return 0;
 
-    float scale = 12 * config->target_octave - A4_SEMITONES;
-    return A4_TONE * semitones_to_ratio (config, scale);
+    float scale = 12 * config->target_octave - C4_SEMITONES;
+    return c4_tone (config) * semitones_to_ratio (config, scale);
 }
 
 DetectState pitch_identify (const TunerConfig * config, float tone, int * pitch, float * off_by)
 {
-    float scale = ratio_to_semitones (config, tone / A4_TONE);
+    float scale = ratio_to_semitones (config, tone / c4_tone (config));
     int newpitch = tone ? lroundf (scale) : INVALID_PITCH;
 
     static int lastpitch = INVALID_PITCH;
@@ -82,7 +87,7 @@ DetectState pitch_identify (const TunerConfig * config, float tone, int * pitch,
     if (newpitch == INVALID_PITCH)
         return DETECT_NONE;
 
-    * pitch = A4_SEMITONES + newpitch;
+    * pitch = C4_SEMITONES + newpitch;
     * off_by = scale - newpitch;
 
     return DETECT_UPDATE;
