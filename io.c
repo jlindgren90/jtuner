@@ -25,8 +25,6 @@
 
 #include <alsa/asoundlib.h>
 
-#define SAMPLES_PER_STEP (N_SAMPLES / N_STEPS)
-
 static snd_pcm_t * handle;
 
 bool io_init (void)
@@ -70,7 +68,7 @@ static bool io_read_step (float data[SAMPLES_PER_STEP])
         return false;
 
     for (int i = 0; i < SAMPLES_PER_STEP; i ++)
-        data[i] = ibuf[i] / 32767.0;
+        data[i] = ibuf[i] / 32767.0f;
 
     return true;
 }

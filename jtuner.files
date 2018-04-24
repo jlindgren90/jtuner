@@ -2,6 +2,7 @@ draw.c
 draw.h
 fft.c
 io.c
+jtuner-offline.c
 jtuner.c
 jtuner.desktop
 jtuner.h

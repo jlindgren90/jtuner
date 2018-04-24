@@ -30,6 +30,8 @@
 
 #define N_STEPS 16
 
+#define SAMPLES_PER_STEP (N_SAMPLES / N_STEPS)
+
 #define TIMEIN 5
 #define TIMEOUT 10
 
