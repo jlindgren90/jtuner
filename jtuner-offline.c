@@ -79,6 +79,7 @@ static void run_offline (FILE * in, FILE * out)
         .target_octave = 0.75f /* A0 */
     };
 
+    int stable_pitch = 9; /* A0 */
     int last_pitch = -1;
     int last_pitch_count = 0;
 
@@ -95,15 +96,20 @@ static void run_offline (FILE * in, FILE * out)
 
         if (status.state == DETECT_UPDATE)
         {
-            fprintf (out, "%s%d,%.02f Hz,%+.02f,%+.02f\n",
-             note_names[status.pitch % 12], status.pitch / 12, status.tone,
-             status.harm_stretch, status.off_by);
+            if (status.pitch == stable_pitch || status.pitch == stable_pitch + 1)
+                fprintf (out, "%s%d,%.02f Hz,%+.02f,%+.02f\n",
+                 note_names[status.pitch % 12], status.pitch / 12, status.tone,
+                 status.harm_stretch, status.off_by);
 
             if (status.pitch == last_pitch)
             {
                 last_pitch_count ++;
+
                 if (last_pitch_count == 10)
-                    config.target_octave = status.pitch / 12.0f;
+                {
+                    config.target_octave = last_pitch / 12.0f;
+                    stable_pitch = last_pitch;
+                }
             }
             else
             {
