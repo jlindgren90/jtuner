@@ -34,14 +34,16 @@ static bool quit_flag;
 static void disable_fill (GtkWidget * window)
 {
     GdkWindow * gdk_window = gtk_widget_get_window (window);
-    gdk_window_set_background_pattern (gdk_window, NULL);
+    gdk_window_set_back_pixmap (gdk_window, NULL, FALSE);
 }
 
-static gboolean redraw (GtkWidget * window, cairo_t * cr)
+static gboolean redraw (GtkWidget * window, GdkEventExpose * event)
 {
+    cairo_t * cr = gdk_cairo_create (gtk_widget_get_window (window));
     pthread_mutex_lock (& mutex);
     draw_tuner (window, cr, & status);
     pthread_mutex_unlock (& mutex);
+    cairo_destroy (cr);
     return TRUE;
 }
 
@@ -134,29 +136,33 @@ int main (void)
     g_signal_connect (window, "realize", (GCallback) disable_fill, NULL);
     g_signal_connect (window, "destroy", (GCallback) gtk_main_quit, NULL);
 
-    GtkWidget * grid = gtk_grid_new ();
-    gtk_container_add ((GtkContainer *) window, grid);
+    GtkWidget * vbox = gtk_vbox_new (FALSE, 0);
+    gtk_container_add ((GtkContainer *) window, vbox);
 
     tuner = gtk_drawing_area_new ();
-    gtk_widget_set_hexpand (tuner, TRUE);
-    gtk_widget_set_vexpand (tuner, TRUE);
-    gtk_grid_attach ((GtkGrid *) grid, tuner, 0, 0, 4, 1);
+    gtk_box_pack_start ((GtkBox *) vbox, tuner, TRUE, TRUE, 0);
 
-    g_signal_connect (tuner, "draw", (GCallback) redraw, NULL);
+    g_signal_connect (tuner, "expose-event", (GCallback) redraw, NULL);
 
-    gtk_grid_attach ((GtkGrid *) grid, gtk_label_new ("Octave stretch (semitones):"), 0, 1, 1, 1);
+    GtkWidget * hbox = gtk_hbox_new (FALSE, 6);
+    gtk_container_set_border_width ((GtkContainer *) hbox, 3);
+    gtk_box_pack_start ((GtkBox *) vbox, hbox, FALSE, FALSE, 0);
+
+    GtkWidget * stretch_label = gtk_label_new ("Octave stretch (semitones):");
+    gtk_box_pack_start ((GtkBox *) hbox, stretch_label, TRUE, FALSE, 0);
 
     GtkWidget * stretch_spin = gtk_spin_button_new_with_range (-1.0, 1.0, 0.01);
     gtk_spin_button_set_value ((GtkSpinButton *) stretch_spin, config.octave_stretch);
-    gtk_grid_attach ((GtkGrid *) grid, stretch_spin, 1, 1, 1, 1);
+    gtk_box_pack_start ((GtkBox *) hbox, stretch_spin, TRUE, FALSE, 0);
 
     g_signal_connect (stretch_spin, "value-changed", (GCallback) adjust_stretch, NULL);
 
-    gtk_grid_attach ((GtkGrid *) grid, gtk_label_new ("Target octave:"), 2, 1, 1, 1);
+    GtkWidget * target_label = gtk_label_new ("Target octave:");
+    gtk_box_pack_start ((GtkBox *) hbox, target_label, TRUE, FALSE, 0);
 
     GtkWidget * target_spin = gtk_spin_button_new_with_range (0.0, 8.0, 0.1);
     gtk_spin_button_set_value ((GtkSpinButton *) target_spin, config.target_octave);
-    gtk_grid_attach ((GtkGrid *) grid, target_spin, 3, 1, 1, 1);
+    gtk_box_pack_start ((GtkBox *) hbox, target_spin, TRUE, FALSE, 0);
 
     g_signal_connect (target_spin, "value-changed", (GCallback) adjust_target, NULL);
 
