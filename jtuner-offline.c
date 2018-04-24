@@ -26,11 +26,6 @@
 static const char * note_names[12] =
  {"C", "C♯", "D", "E♭", "E", "F", "F♯", "G", "A♭", "A", "B♭", "B"};
 
-static const TunerConfig config = {
-    .octave_stretch = 0.05f,
-    .target_octave = 0.0f
-};
-
 static void error_exit (const char * error)
 {
     fprintf (stderr, "%s\n", error);
@@ -79,6 +74,14 @@ static void run_offline (FILE * in, FILE * out)
 
     fprintf (out, "Note,Freq,Harm,Err\n");
 
+    TunerConfig config = {
+        .octave_stretch = 0.05f,
+        .target_octave = 0.75f /* A0 */
+    };
+
+    int last_pitch = -1;
+    int last_pitch_count = 0;
+
     while (read_samples (in, data))
     {
         fft_run (data, freqs);
@@ -91,9 +94,23 @@ static void run_offline (FILE * in, FILE * out)
          & status.pitch, & status.off_by);
 
         if (status.state == DETECT_UPDATE)
+        {
             fprintf (out, "%s%d,%.02f Hz,%+.02f,%+.02f\n",
              note_names[status.pitch % 12], status.pitch / 12, status.tone,
              status.harm_stretch, status.off_by);
+
+            if (status.pitch == last_pitch)
+            {
+                last_pitch_count ++;
+                if (last_pitch_count == 10)
+                    config.target_octave = status.pitch / 12.0f;
+            }
+            else
+            {
+                last_pitch = status.pitch;
+                last_pitch_count = 0;
+            }
+        }
     }
 }
 
