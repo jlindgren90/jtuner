@@ -130,7 +130,7 @@ float calc_harm_stretch (float peaks[N_PEAKS], float levels[N_PEAKS], float root
             break;
     }
 
-    return stretchsum / levelsum;
+    return (levelsum > 0) ? stretchsum / levelsum : INVALID_VAL;
 }
 
 float tone_detect (const float freqs[N_FREQS], float target, float * harm_stretch)

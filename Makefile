@@ -1,6 +1,6 @@
 SRCS=draw.c fft.c io.c jtuner.c pitch.c tone.c
 OFFLINE_SRCS=fft.c jtuner-offline.c pitch.c tone.c
-FLAGS=-std=gnu99 -Wall -O2 -ffast-math
+FLAGS=-std=gnu99 -Wall -O2 -g -ffast-math
 LIBS=-lm -lasound `pkg-config --cflags --libs gtk+-2.0`
 
 all : jtuner jtuner-offline
@@ -32,4 +32,4 @@ uninstall :
 	update-desktop-database
 
 clean :
-	rm -f jtuner
+	rm -f jtuner jtuner-offline

@@ -37,6 +37,8 @@
 
 #define N_FREQS (N_SAMPLES / 2 + 1)
 
+#define INVALID_VAL -100
+
 typedef enum {
     DETECT_NONE,
     DETECT_UPDATE,
