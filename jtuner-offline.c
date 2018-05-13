@@ -112,9 +112,9 @@ static void collect_status (const TunerStatus * status)
         num_collect_off_by[index] ++;
     }
 
-    if (status->harm_stretch != INVALID_VAL && num_collect_harm_stretch[index] < MAX_COLLECT)
+    if (status->tone.harm_stretch != INVALID_VAL && num_collect_harm_stretch[index] < MAX_COLLECT)
     {
-        collect_harm_stretch[index][num_collect_harm_stretch[index]] = status->harm_stretch;
+        collect_harm_stretch[index][num_collect_harm_stretch[index]] = status->tone.harm_stretch;
         num_collect_harm_stretch[index] ++;
     }
 }
@@ -129,8 +129,8 @@ static void process_freqs (float freqs[N_FREQS], FILE * out)
     TunerStatus status;
 
     float target = calc_target (& config);
-    status.tone = tone_detect (freqs, target, & status.harm_stretch);
-    status.state = pitch_identify (& config, status.tone,
+    status.tone = tone_detect (freqs, target);
+    status.state = pitch_identify (& config, status.tone.tone_hz,
      & status.pitch, & status.off_by);
 
     if (status.state == DETECT_UPDATE)
@@ -138,8 +138,8 @@ static void process_freqs (float freqs[N_FREQS], FILE * out)
         if (status.pitch == stable_pitch || status.pitch == stable_pitch + 1)
         {
             fprintf (out, "%s%d,%.02f Hz,%+.04f,%+.04f\n",
-             note_names[status.pitch % 12], status.pitch / 12, status.tone,
-             status.harm_stretch, status.off_by);
+             note_names[status.pitch % 12], status.pitch / 12,
+             status.tone.tone_hz, status.tone.harm_stretch, status.off_by);
 
             collect_status (& status);
         }

@@ -1,6 +1,6 @@
 /*
  * JTuner - tone.c
- * Copyright 2013 John Lindgren
+ * Copyright 2013-2018 John Lindgren
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -25,12 +25,17 @@
 #define N_PEAKS 32
 #define N_OVERTONES 16
 
-#define MIN_FREQ 20
-#define MAX_FREQ 10000
+#define MIN_FREQ_HZ 20
+#define MAX_FREQ_HZ 10000
 
-#define SQRT_2 1.41421356237
+#define SQRT_2 1.41421356f
 
-void find_peaks (const float freqs[N_FREQS], float peaks[N_PEAKS], float levels[N_PEAKS])
+typedef struct {
+    float freq_hz;
+    float level;
+} Peak;
+
+static void find_peaks (const float freqs[N_FREQS], Peak peaks[N_PEAKS])
 {
     char skip[N_FREQS] = {0};
     int ipeaks[N_PEAKS];
@@ -38,26 +43,26 @@ void find_peaks (const float freqs[N_FREQS], float peaks[N_PEAKS], float levels[
     for (int p = 0; p < N_PEAKS; p ++)
     {
         ipeaks[p] = 1;
-        levels[p] = 0;
+        peaks[p].level = 0;
 
         for (int i = 1; i < N_FREQS - 1; i ++)
         {
-            if (freqs[i] > levels[p] && ! skip[i])
+            if (freqs[i] > peaks[p].level && ! skip[i])
             {
                 ipeaks[p] = i;
-                levels[p] = freqs[i];
+                peaks[p].level = freqs[i];
             }
         }
 
-        int skiplow = lroundf (ipeaks[p] * 0.9);
-        int skiphigh = lroundf (ipeaks[p] * 1.1);
+        int skiplow = (int) lroundf (ipeaks[p] * 0.9f);
+        int skiphigh = (int) lroundf (ipeaks[p] * 1.1f);
 
         if (skiplow < 0)
             skiplow = 0;
         if (skiphigh > N_FREQS - 1)
             skiphigh = N_FREQS - 1;
 
-        memset (skip + skiplow, 1, skiphigh + 1 - skiplow);
+        memset (skip + skiplow, 1, (size_t) (skiphigh + 1 - skiplow));
     }
 
     for (int p = 0; p < N_PEAKS; p ++)
@@ -69,29 +74,29 @@ void find_peaks (const float freqs[N_FREQS], float peaks[N_PEAKS], float levels[
         float num = a - c;
         float denom = 2 * a - 4 * b + 2 * c;
 
-        peaks[p] = (ipeaks[p] + num / denom) * SAMPLERATE / N_SAMPLES;
+        peaks[p].freq_hz = (ipeaks[p] + num / denom) * SAMPLERATE / N_SAMPLES;
     }
 }
 
-float calc_harm_score (float peaks[N_PEAKS], float levels[N_PEAKS], float root)
+static float calc_harm_score (const Peak peaks[N_PEAKS], float root_hz)
 {
-    if (root < MIN_FREQ || root > MAX_FREQ)
+    if (root_hz < MIN_FREQ_HZ || root_hz > MAX_FREQ_HZ)
         return 0;
 
     float score = 0;
 
     for (int t = 1; t <= N_OVERTONES; t ++)
     {
-        float mintone = root * t * 0.95;
-        float maxtone = root * t * 1.05;
+        float min_harm_hz = root_hz * t * 0.95f;
+        float max_harm_hz = root_hz * t * 1.05f;
 
         bool found = false;
 
         for (int p = 0; p < N_PEAKS; p ++)
         {
-            if (peaks[p] > mintone && peaks[p] < maxtone)
+            if (peaks[p].freq_hz > min_harm_hz && peaks[p].freq_hz < max_harm_hz)
             {
-                score += levels[p] * peaks[p];
+                score += peaks[p].freq_hz * peaks[p].level;
                 found = true;
                 break;
             }
@@ -104,24 +109,26 @@ float calc_harm_score (float peaks[N_PEAKS], float levels[N_PEAKS], float root)
     return score;
 }
 
-float calc_harm_stretch (float peaks[N_PEAKS], float levels[N_PEAKS], float root)
+static float calc_harm_stretch (const Peak peaks[N_PEAKS], float root_hz)
 {
     float stretchsum = 0;
     float levelsum = 0;
 
     for (int t = 2; t <= N_OVERTONES; t ++)
     {
-        float mintone = root * t * 0.95;
-        float maxtone = root * t * 1.05;
+        float min_harm_hz = root_hz * t * 0.95f;
+        float max_harm_hz = root_hz * t * 1.05f;
 
         bool found = false;
 
         for (int p = 0; p < N_PEAKS; p ++)
         {
-            if (peaks[p] > mintone && peaks[p] < maxtone)
+            if (peaks[p].freq_hz > min_harm_hz && peaks[p].freq_hz < max_harm_hz)
             {
-                stretchsum += levels[p] * (12 * logf (peaks[p] / root) / logf (t) - 12);
-                levelsum += levels[p];
+                float stretch = 12 * logf (peaks[p].freq_hz / root_hz) / logf (t) - 12;
+
+                stretchsum += stretch * peaks[p].level;
+                levelsum += peaks[p].level;
                 found = true;
             }
         }
@@ -133,31 +140,39 @@ float calc_harm_stretch (float peaks[N_PEAKS], float levels[N_PEAKS], float root
     return (levelsum > 0) ? stretchsum / levelsum : INVALID_VAL;
 }
 
-float tone_detect (const float freqs[N_FREQS], float target, float * harm_stretch)
+DetectedTone tone_detect (const float freqs[N_FREQS], float target_hz)
 {
-    float levels[N_PEAKS];
-    float peaks[N_PEAKS];
+    Peak peaks[N_PEAKS];
+    find_peaks (freqs, peaks);
 
-    find_peaks (freqs, peaks, levels);
+    float min_tone_hz = MIN_FREQ_HZ;
+    float max_tone_hz = MAX_FREQ_HZ;
 
-    float tone = 0;
+    if ((bool) target_hz)
+    {
+        min_tone_hz = target_hz / SQRT_2;
+        max_tone_hz = target_hz * SQRT_2;
+    }
+
+    float tone_hz = 0;
     float topscore = 0;
 
     for (int p = 0; p < N_PEAKS; p ++)
     {
-        if (target && (peaks[p] < target / SQRT_2 || peaks[p] > target * SQRT_2))
+        if (peaks[p].freq_hz < min_tone_hz || peaks[p].freq_hz > max_tone_hz)
             continue;
 
-        float score = calc_harm_score (peaks, levels, peaks[p]);
+        float score = calc_harm_score (peaks, peaks[p].freq_hz);
 
         if (score > topscore)
         {
-            tone = peaks[p];
+            tone_hz = peaks[p].freq_hz;
             topscore = score;
         }
     }
 
-    * harm_stretch = calc_harm_stretch (peaks, levels, tone);
-
-    return tone;
+    return (DetectedTone) {
+        .tone_hz = tone_hz,
+        .harm_stretch = calc_harm_stretch (peaks, tone_hz)
+    };
 }

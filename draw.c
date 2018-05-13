@@ -97,8 +97,8 @@ void draw_tuner (GtkWidget * widget, cairo_t * cr, const TunerStatus * status)
     }
     else
     {
-        sprintf (tone, "%.02f Hz", status->tone);
-        sprintf (stretch, "harmonics %+.02f", status->harm_stretch);
+        sprintf (tone, "%.02f Hz", status->tone.tone_hz);
+        sprintf (stretch, "harmonics %+.02f", status->tone.harm_stretch);
         sprintf (note, "%s%d", note_names[status->pitch % 12], status->pitch / 12);
         sprintf (off_by, "%+.02f", status->off_by);
     }

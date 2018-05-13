@@ -1,6 +1,6 @@
 /*
  * JTuner - jtuner.h
- * Copyright 2013 John Lindgren
+ * Copyright 2013-2018 John Lindgren
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -37,7 +37,7 @@
 
 #define N_FREQS (N_SAMPLES / 2 + 1)
 
-#define INVALID_VAL -100
+#define INVALID_VAL -999
 
 typedef enum {
     DETECT_NONE,
@@ -51,8 +51,14 @@ typedef struct {
 } TunerConfig;
 
 typedef struct {
+    float tone_hz;
+    float harm_stretch;
+} DetectedTone;
+
+typedef struct {
     DetectState state;
-    float tone, harm_stretch, off_by;
+    DetectedTone tone;
+    float off_by;
     int pitch;
 } TunerStatus;
 
@@ -71,6 +77,6 @@ float calc_target (const TunerConfig * config);
 DetectState pitch_identify (const TunerConfig * config, float tone, int * pitch, float * off_by);
 
 /* tone.c */
-float tone_detect (const float freqs[N_FREQS], float target, float * harm_stretch);
+DetectedTone tone_detect (const float freqs[N_FREQS], float target_hz);
 
 #endif // JTUNER_H

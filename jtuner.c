@@ -97,8 +97,8 @@ static void * io_worker (void * arg)
         TunerStatus new_status;
 
         float target = calc_target (& config);
-        new_status.tone = tone_detect (freqs, target, & new_status.harm_stretch);
-        new_status.state = pitch_identify (& config, new_status.tone,
+        new_status.tone = tone_detect (freqs, target);
+        new_status.state = pitch_identify (& config, new_status.tone.tone_hz,
          & new_status.pitch, & new_status.off_by);
 
         if (new_status.state == DETECT_UPDATE ||
