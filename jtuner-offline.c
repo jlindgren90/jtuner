@@ -27,6 +27,8 @@
 #define MIN_PITCH 9  /* A0 */
 #define MAX_PITCH 96 /* C8 */
 
+#define OCTAVE_STRETCH 0.05f
+
 #define NUM_PITCHES (MAX_PITCH + 1 - MIN_PITCH)
 
 #define MAX_COLLECT 100
@@ -119,8 +121,8 @@ static void collect_status (const TunerStatus * status)
 
 static void process_freqs (float freqs[N_FREQS], FILE * out)
 {
-    TunerConfig config = {
-        .octave_stretch = 0.05f,
+    const TunerConfig config = {
+        .octave_stretch = OCTAVE_STRETCH,
         .target_octave = stable_pitch / 12.0f
     };
 
@@ -165,6 +167,11 @@ static float compute_median (float * values, int num_values)
 
 static void run_offline (FILE * in, FILE * out)
 {
+    const TunerConfig config = {
+        .octave_stretch = OCTAVE_STRETCH,
+        .target_octave = 0.0f
+    };
+
     float data[N_SAMPLES];
     float freqs[N_FREQS];
 
@@ -180,18 +187,19 @@ static void run_offline (FILE * in, FILE * out)
     }
 
     fprintf (out, "\nMedians\n");
-    fprintf (out, "Note,Harm,Err\n");
+    fprintf (out, "Note,Model,Harm,Err\n");
 
     for (int index = 0; index < NUM_PITCHES; index ++)
     {
         int pitch = MIN_PITCH + index;
+        float model = model_harm_stretch (& config, pitch);
         float harm_stretch = compute_median (collect_harm_stretch[index],
          num_collect_harm_stretch[index]);
         float off_by = compute_median (collect_off_by[index],
          num_collect_off_by[index]);
 
-        fprintf (out, "%s%d,%+.02f,%+.02f\n",
-         note_names[pitch % 12], pitch / 12, harm_stretch, off_by);
+        fprintf (out, "%s%d,%+.02f,%+.02f,%+.02f\n",
+         note_names[pitch % 12], pitch / 12, model, harm_stretch, off_by);
     }
 }
 

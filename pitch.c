@@ -62,6 +62,18 @@ float calc_target (const TunerConfig * config)
     return c4_tone (config) * semitones_to_ratio (config, scale);
 }
 
+float model_harm_stretch (const TunerConfig * config, int pitch)
+{
+    float s = config->octave_stretch;
+    int n1 = pitch - C4_SEMITONES;
+    int n2 = n1 + 12;
+    int sign1 = (n1 > 0) ? 1 : -1;
+    int sign2 = (n2 > 0) ? 1 : -1;
+    float adj1 = sign1 * n1 * n1 * s / 288;
+    float adj2 = sign2 * n2 * n2 * s / 288;
+    return adj2 - adj1;
+}
+
 DetectState pitch_identify (const TunerConfig * config, float tone, int * pitch, float * off_by)
 {
     float scale = ratio_to_semitones (config, tone / c4_tone (config));

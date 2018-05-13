@@ -66,6 +66,7 @@ bool io_read_samples (float data[N_SAMPLES]);
 void io_cleanup (void);
 
 /* pitch.c */
+float model_harm_stretch (const TunerConfig * config, int pitch);
 float calc_target (const TunerConfig * config);
 DetectState pitch_identify (const TunerConfig * config, float tone, int * pitch, float * off_by);
 
