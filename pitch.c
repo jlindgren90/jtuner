@@ -1,6 +1,6 @@
 /*
  * JTuner - pitch.c
- * Copyright 2013 John Lindgren
+ * Copyright 2013-2018 John Lindgren
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -21,69 +21,64 @@
 
 #include <math.h>
 
-#define C4_SEMITONES  48  /* semitones from C0 to C4 */
-#define A4_TONE      440  /* concert pitch (A4 = 440 Hz) */
-
 /* The following procedures use a quadratic adjustment to implement "stretched"
  * tuning, where each semitone n (relative to middle C) is tuned sharper or
  * flatter than equal temperament by s/2*(n/12)^2 semitones.  This results in
  * each octave moving away from middle C being incrementally stretched by s
  * semitones relative to the previous octave. */
 
-static float semitones_to_ratio (const TunerConfig * config, float n)
+static float semitones_to_ratio (float s, float n)
 {
-    float s = config->octave_stretch;
     float sign = (n > 0) ? 1 : -1;
     return powf (2, n / 12 + sign * n * n * s / 3456);
 }
 
-static float ratio_to_semitones (const TunerConfig * config, float x)
+static float ratio_to_semitones (float s, float x)
 {
-    float s = config->octave_stretch;
-
-    if (! s)  /* prevent division by zero */
+    if (fabsf (s) < 0.0001f)  /* prevent division by zero */
         return 12 * log2f (x);
 
     float sign = (x > 1) ? 1 : -1;
-    return sign * (24 * sqrt (36 + sign * 6 * s * log2f (x)) - 144) / s;
+    return sign * (24 * sqrtf (36 + sign * 6 * s * log2f (x)) - 144) / s;
 }
 
-static float c4_tone (const TunerConfig * config)
+static float c4_tone_hz (float s)
 {
-    return A4_TONE / semitones_to_ratio (config, 9);
+    return A4_TONE_HZ / semitones_to_ratio (s, A4_PITCH - C4_PITCH);
 }
 
-float calc_target (const TunerConfig * config)
+float pitch_to_tone_hz (float s, float pitch)
 {
-    if (! config->target_octave)
-        return 0;
-
-    float scale = 12 * config->target_octave - C4_SEMITONES;
-    return c4_tone (config) * semitones_to_ratio (config, scale);
+    return c4_tone_hz (s) * semitones_to_ratio (s, pitch - C4_PITCH);
 }
 
-float model_harm_stretch (const TunerConfig * config, int pitch)
+float model_harm_stretch (float s, float pitch1, float pitch2)
 {
-    float s = config->octave_stretch;
-    int n1 = pitch - C4_SEMITONES;
-    int n2 = n1 + 12;
-    int sign1 = (n1 > 0) ? 1 : -1;
-    int sign2 = (n2 > 0) ? 1 : -1;
+    float n1 = pitch1 - C4_PITCH;
+    float n2 = pitch2 - C4_PITCH;
+    float sign1 = (n1 > 0) ? 1 : -1;
+    float sign2 = (n2 > 0) ? 1 : -1;
     float adj1 = sign1 * n1 * n1 * s / 288;
     float adj2 = sign2 * n2 * n2 * s / 288;
     return adj2 - adj1;
 }
 
-DetectState pitch_identify (const TunerConfig * config, float tone, int * pitch, float * off_by)
+DetectedPitch pitch_identify (float s, float tone_hz)
 {
-    float scale = ratio_to_semitones (config, tone / c4_tone (config));
-    int newpitch = tone ? lroundf (scale) : INVALID_VAL;
-
-    static int lastpitch = INVALID_VAL;
+    static int last_pitch = INVALID_VAL;
     static int timein = 0;
     static int timeout = 0;
 
-    if (newpitch == lastpitch)
+    float pitch_real = INVALID_VAL;
+    int pitch_rounded = INVALID_VAL;
+
+    if (tone_hz > INVALID_VAL)
+    {
+        pitch_real = C4_PITCH + ratio_to_semitones (s, tone_hz / c4_tone_hz (s));
+        pitch_rounded = (int) lroundf (pitch_real);
+    }
+
+    if (pitch_rounded == last_pitch)
     {
         if (timein)
             timein --;
@@ -93,24 +88,26 @@ DetectState pitch_identify (const TunerConfig * config, float tone, int * pitch,
     }
     else
     {
-        lastpitch = newpitch;
+        last_pitch = pitch_rounded;
         timein = TIMEIN - 1;
 
         if (timeout)
             timeout --;
     }
 
-    if (! timeout)
-        return DETECT_NONE;
+    DetectedPitch pitch = {
+        .state = DETECT_NONE,
+        .pitch = pitch_rounded,
+        .off_by = pitch_real - pitch_rounded
+    };
 
-    if (timein)
-        return DETECT_KEEP;
+    if (timeout)
+    {
+        if (timein)
+            pitch.state = DETECT_KEEP;
+        else if (pitch_rounded > INVALID_VAL)
+            pitch.state = DETECT_UPDATE;
+    }
 
-    if (newpitch == INVALID_VAL)
-        return DETECT_NONE;
-
-    * pitch = C4_SEMITONES + newpitch;
-    * off_by = scale - newpitch;
-
-    return DETECT_UPDATE;
+    return pitch;
 }

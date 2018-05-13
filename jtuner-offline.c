@@ -99,52 +99,44 @@ static void detect_stable_pitch (int pitch)
     }
 }
 
-static void collect_status (const TunerStatus * status)
+static void collect_pitch (const DetectedPitch * pitch, float harm_stretch)
 {
-    if (status->pitch < MIN_PITCH || status->pitch > MAX_PITCH)
+    if (pitch->pitch < MIN_PITCH || pitch->pitch > MAX_PITCH)
         return;
 
-    int index = status->pitch - MIN_PITCH;
+    int index = pitch->pitch - MIN_PITCH;
 
     if (num_collect_off_by[index] < MAX_COLLECT)
     {
-        collect_off_by[index][num_collect_off_by[index]] = status->off_by;
+        collect_off_by[index][num_collect_off_by[index]] = pitch->off_by;
         num_collect_off_by[index] ++;
     }
 
-    if (status->tone.harm_stretch != INVALID_VAL && num_collect_harm_stretch[index] < MAX_COLLECT)
+    if (harm_stretch > INVALID_VAL && num_collect_harm_stretch[index] < MAX_COLLECT)
     {
-        collect_harm_stretch[index][num_collect_harm_stretch[index]] = status->tone.harm_stretch;
+        collect_harm_stretch[index][num_collect_harm_stretch[index]] = harm_stretch;
         num_collect_harm_stretch[index] ++;
     }
 }
 
 static void process_freqs (float freqs[N_FREQS], FILE * out)
 {
-    const TunerConfig config = {
-        .octave_stretch = OCTAVE_STRETCH,
-        .target_octave = stable_pitch / 12.0f
-    };
+    float target_hz = pitch_to_tone_hz (OCTAVE_STRETCH, stable_pitch);
+    DetectedTone tone = tone_detect (freqs, target_hz);
+    DetectedPitch pitch = pitch_identify (OCTAVE_STRETCH, tone.tone_hz);
 
-    TunerStatus status;
-
-    float target = calc_target (& config);
-    status.tone = tone_detect (freqs, target);
-    status.state = pitch_identify (& config, status.tone.tone_hz,
-     & status.pitch, & status.off_by);
-
-    if (status.state == DETECT_UPDATE)
+    if (pitch.state == DETECT_UPDATE)
     {
-        if (status.pitch == stable_pitch || status.pitch == stable_pitch + 1)
+        if (pitch.pitch == stable_pitch || pitch.pitch == stable_pitch + 1)
         {
             fprintf (out, "%s%d,%.02f Hz,%+.04f,%+.04f\n",
-             note_names[status.pitch % 12], status.pitch / 12,
-             status.tone.tone_hz, status.tone.harm_stretch, status.off_by);
+             note_names[pitch.pitch % 12], pitch.pitch / 12, tone.tone_hz,
+             tone.harm_stretch, pitch.off_by);
 
-            collect_status (& status);
+            collect_pitch (& pitch, tone.harm_stretch);
         }
 
-        detect_stable_pitch (status.pitch);
+        detect_stable_pitch (pitch.pitch);
     }
 }
 
@@ -159,7 +151,7 @@ static float compute_median (float * values, int num_values)
     if (num_values < 1)
         return INVALID_VAL;
 
-    qsort (values, num_values, sizeof values[0], compare_float);
+    qsort (values, (size_t) num_values, sizeof values[0], compare_float);
 
     return (num_values % 2) ? values[num_values / 2] :
            0.5f * (values[num_values / 2] + values[num_values / 2 + 1]);
@@ -167,11 +159,6 @@ static float compute_median (float * values, int num_values)
 
 static void run_offline (FILE * in, FILE * out)
 {
-    const TunerConfig config = {
-        .octave_stretch = OCTAVE_STRETCH,
-        .target_octave = 0.0f
-    };
-
     float data[N_SAMPLES];
     float freqs[N_FREQS];
 
@@ -192,7 +179,7 @@ static void run_offline (FILE * in, FILE * out)
     for (int index = 0; index < NUM_PITCHES; index ++)
     {
         int pitch = MIN_PITCH + index;
-        float model = model_harm_stretch (& config, pitch);
+        float model = model_harm_stretch (OCTAVE_STRETCH, pitch, pitch + 12);
         float harm_stretch = compute_median (collect_harm_stretch[index],
          num_collect_harm_stretch[index]);
         float off_by = compute_median (collect_off_by[index],

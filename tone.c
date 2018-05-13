@@ -148,13 +148,13 @@ DetectedTone tone_detect (const float freqs[N_FREQS], float target_hz)
     float min_tone_hz = MIN_FREQ_HZ;
     float max_tone_hz = MAX_FREQ_HZ;
 
-    if ((bool) target_hz)
+    if (target_hz > INVALID_VAL)
     {
         min_tone_hz = target_hz / SQRT_2;
         max_tone_hz = target_hz * SQRT_2;
     }
 
-    float tone_hz = 0;
+    float tone_hz = INVALID_VAL;
     float topscore = 0;
 
     for (int p = 0; p < N_PEAKS; p ++)

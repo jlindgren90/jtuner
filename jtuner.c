@@ -1,6 +1,6 @@
 /*
  * JTuner - jtuner.c
- * Copyright 2013 John Lindgren
+ * Copyright 2013-2018 John Lindgren
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -26,8 +26,12 @@
 
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
-static TunerConfig config;
-static TunerStatus status;
+static float octave_stretch = 0.05f;
+static float target_octave = 0;
+
+static DetectedTone tone;
+static DetectedPitch pitch;
+
 static GtkWidget * tuner;
 static bool quit_flag;
 
@@ -41,7 +45,7 @@ static gboolean redraw (GtkWidget * window, GdkEventExpose * event)
 {
     cairo_t * cr = gdk_cairo_create (gtk_widget_get_window (window));
     pthread_mutex_lock (& mutex);
-    draw_tuner (window, cr, & status);
+    draw_tuner (window, cr, & tone, & pitch);
     pthread_mutex_unlock (& mutex);
     cairo_destroy (cr);
     return TRUE;
@@ -56,14 +60,14 @@ static gboolean queue_redraw (void * arg)
 static void adjust_stretch (GtkWidget * spin)
 {
     pthread_mutex_lock (& mutex);
-    config.octave_stretch = gtk_spin_button_get_value ((GtkSpinButton *) spin);
+    octave_stretch = gtk_spin_button_get_value ((GtkSpinButton *) spin);
     pthread_mutex_unlock (& mutex);
 }
 
 static void adjust_target (GtkWidget * spin)
 {
     pthread_mutex_lock (& mutex);
-    config.target_octave = gtk_spin_button_get_value ((GtkSpinButton *) spin);
+    target_octave = gtk_spin_button_get_value ((GtkSpinButton *) spin);
     pthread_mutex_unlock (& mutex);
 }
 
@@ -94,17 +98,18 @@ static void * io_worker (void * arg)
 
         pthread_mutex_lock (& mutex);
 
-        TunerStatus new_status;
+        float target_hz = INVALID_VAL;
+        if (target_octave > 0)
+            target_hz = pitch_to_tone_hz (octave_stretch, 12 * target_octave);
 
-        float target = calc_target (& config);
-        new_status.tone = tone_detect (freqs, target);
-        new_status.state = pitch_identify (& config, new_status.tone.tone_hz,
-         & new_status.pitch, & new_status.off_by);
+        DetectedTone new_tone = tone_detect (freqs, target_hz);
+        DetectedPitch new_pitch = pitch_identify (octave_stretch, new_tone.tone_hz);
 
-        if (new_status.state == DETECT_UPDATE ||
-         (new_status.state == DETECT_NONE && status.state != DETECT_NONE))
+        if (new_pitch.state == DETECT_UPDATE ||
+         (new_pitch.state == DETECT_NONE && pitch.state != DETECT_NONE))
         {
-            status = new_status;
+            tone = new_tone;
+            pitch = new_pitch;
             g_timeout_add (0, queue_redraw, NULL);
         }
 
@@ -121,8 +126,6 @@ static void * io_worker (void * arg)
 int main (void)
 {
     gtk_init (NULL, NULL);
-
-    config.octave_stretch = 0.05;
 
     pthread_t io_thread;
     pthread_create (& io_thread, NULL, io_worker, NULL);
@@ -152,7 +155,7 @@ int main (void)
     gtk_box_pack_start ((GtkBox *) hbox, stretch_label, TRUE, FALSE, 0);
 
     GtkWidget * stretch_spin = gtk_spin_button_new_with_range (-1.0, 1.0, 0.01);
-    gtk_spin_button_set_value ((GtkSpinButton *) stretch_spin, config.octave_stretch);
+    gtk_spin_button_set_value ((GtkSpinButton *) stretch_spin, octave_stretch);
     gtk_box_pack_start ((GtkBox *) hbox, stretch_spin, TRUE, FALSE, 0);
 
     g_signal_connect (stretch_spin, "value-changed", (GCallback) adjust_stretch, NULL);
@@ -161,7 +164,7 @@ int main (void)
     gtk_box_pack_start ((GtkBox *) hbox, target_label, TRUE, FALSE, 0);
 
     GtkWidget * target_spin = gtk_spin_button_new_with_range (0.0, 8.0, 0.1);
-    gtk_spin_button_set_value ((GtkSpinButton *) target_spin, config.target_octave);
+    gtk_spin_button_set_value ((GtkSpinButton *) target_spin, target_octave);
     gtk_box_pack_start ((GtkBox *) hbox, target_spin, TRUE, FALSE, 0);
 
     g_signal_connect (target_spin, "value-changed", (GCallback) adjust_target, NULL);

@@ -1,6 +1,6 @@
 /*
  * JTuner - draw.c
- * Copyright 2013 John Lindgren
+ * Copyright 2013-2018 John Lindgren
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -77,7 +77,8 @@ static void draw_dial (GtkWidget * widget, cairo_t * cr, int x, int y,
     }
 }
 
-void draw_tuner (GtkWidget * widget, cairo_t * cr, const TunerStatus * status)
+void draw_tuner (GtkWidget * widget, cairo_t * cr, const DetectedTone * tone,
+ const DetectedPitch * pitch)
 {
     GtkAllocation alloc;
     gtk_widget_get_allocation (widget, & alloc);
@@ -86,29 +87,29 @@ void draw_tuner (GtkWidget * widget, cairo_t * cr, const TunerStatus * status)
     cairo_rectangle (cr, 0, 0, alloc.width, alloc.height);
     cairo_fill (cr);
 
-    char tone[16], stretch[32], note[16], off_by[16];
+    char tone_str[16], stretch[32], note[16], off_by[16];
 
-    if (status->state == DETECT_NONE)
+    if (pitch->state == DETECT_NONE)
     {
-        sprintf (tone, "0.00 Hz");
+        sprintf (tone_str, "0.00 Hz");
         strcpy (stretch, "");
         strcpy (note, "—");
         strcpy (off_by, "—");
     }
     else
     {
-        sprintf (tone, "%.02f Hz", status->tone.tone_hz);
-        sprintf (stretch, "harmonics %+.02f", status->tone.harm_stretch);
-        sprintf (note, "%s%d", note_names[status->pitch % 12], status->pitch / 12);
-        sprintf (off_by, "%+.02f", status->off_by);
+        sprintf (tone_str, "%.02f Hz", tone->tone_hz);
+        sprintf (stretch, "harmonics %+.02f", tone->harm_stretch);
+        sprintf (note, "%s%d", note_names[pitch->pitch % 12], pitch->pitch / 12);
+        sprintf (off_by, "%+.02f", pitch->off_by);
     }
 
     draw_text (widget, cr, 0, alloc.height / 4, alloc.width / 2, note, "Sans 48");
-    draw_text (widget, cr, 0, alloc.height * 3 / 4, alloc.width / 2, tone, "Sans 24");
+    draw_text (widget, cr, 0, alloc.height * 3 / 4, alloc.width / 2, tone_str, "Sans 24");
     draw_text (widget, cr, 0, alloc.height * 7 / 8, alloc.width / 2, stretch, "Sans 12");
 
     draw_dial (widget, cr, alloc.width / 2, 0, alloc.width / 2,
-     alloc.height * 3 / 4, status->state != DETECT_NONE, status->off_by);
+     alloc.height * 3 / 4, pitch->state != DETECT_NONE, pitch->off_by);
     draw_text (widget, cr, alloc.width / 2, alloc.height * 3 / 4,
      alloc.width / 2, off_by, "Sans 24");
 }

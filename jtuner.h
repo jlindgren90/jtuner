@@ -37,6 +37,11 @@
 
 #define N_FREQS (N_SAMPLES / 2 + 1)
 
+#define C4_PITCH 48
+#define A4_PITCH 57
+
+#define A4_TONE_HZ 440
+
 #define INVALID_VAL -999
 
 typedef enum {
@@ -46,21 +51,15 @@ typedef enum {
 } DetectState;
 
 typedef struct {
-    float octave_stretch;
-    float target_octave;
-} TunerConfig;
-
-typedef struct {
     float tone_hz;
     float harm_stretch;
 } DetectedTone;
 
 typedef struct {
     DetectState state;
-    DetectedTone tone;
-    float off_by;
     int pitch;
-} TunerStatus;
+    float off_by;
+} DetectedPitch;
 
 /* fft.c */
 void fft_init (void);
@@ -72,9 +71,9 @@ bool io_read_samples (float data[N_SAMPLES]);
 void io_cleanup (void);
 
 /* pitch.c */
-float model_harm_stretch (const TunerConfig * config, int pitch);
-float calc_target (const TunerConfig * config);
-DetectState pitch_identify (const TunerConfig * config, float tone, int * pitch, float * off_by);
+float model_harm_stretch (float s, float pitch1, float pitch2);
+float pitch_to_tone_hz (float s, float pitch);
+DetectedPitch pitch_identify (float s, float tone_hz);
 
 /* tone.c */
 DetectedTone tone_detect (const float freqs[N_FREQS], float target_hz);

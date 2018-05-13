@@ -1,6 +1,6 @@
 /*
  * JTuner - draw.h
- * Copyright 2013 John Lindgren
+ * Copyright 2013-2018 John Lindgren
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -24,6 +24,7 @@
 
 #include <gtk/gtk.h>
 
-void draw_tuner (GtkWidget * widget, cairo_t * cr, const TunerStatus * status);
+void draw_tuner (GtkWidget * widget, cairo_t * cr, const DetectedTone * tone,
+ const DetectedPitch * pitch);
 
 #endif // JTUNER_DRAW_H
