@@ -12,8 +12,8 @@ jtuner-offline : ${OFFLINE_SRCS}
 	gcc ${FLAGS} ${OFFLINE_SRCS} -lm -o jtuner-offline
 
 install :
-	cp jtuner /usr/bin
-	chmod 0755 /usr/bin/jtuner
+	cp jtuner jtuner-offline /usr/bin
+	chmod 0755 /usr/bin/jtuner /usr/bin/jtuner-offline
 	cp jtuner.png /usr/share/icons/hicolor/16x16/apps
 	chmod 0644 /usr/share/icons/hicolor/16x16/apps/jtuner.png
 	cp jtuner.svg /usr/share/icons/hicolor/scalable/apps
@@ -24,7 +24,7 @@ install :
 	update-desktop-database
 
 uninstall :
-	rm -f /usr/bin/jtuner
+	rm -f /usr/bin/jtuner /usr/bin/jtuner-offline
 	rm -f /usr/share/icons/hicolor/16x16/apps/jtuner.png
 	rm -f /usr/share/icons/hicolor/scalable/apps/jtuner.svg
 	gtk-update-icon-cache /usr/share/icons/hicolor
