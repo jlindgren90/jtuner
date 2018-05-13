@@ -49,11 +49,11 @@ static int bit_reverse (int x)
 void fft_init (void)
 {
     for (int n = 0; n < N; n ++)
-        hamming[n] = 1 - 0.85 * cosf (2 * M_PI * n / N);
+        hamming[n] = 1 - 0.85f * cosf (2 * (float) M_PI * n / N);
     for (int n = 0; n < N; n ++)
         reversed[n] = bit_reverse (n);
     for (int n = 0; n < N / 2; n ++)
-        roots[n] = cexpf (2 * M_PI * I * n / N);
+        roots[n] = cexpf (2 * (float) M_PI * I * n / N);
 }
 
 /* Perform the DFT using the Cooley-Tukey algorithm.  At each step s, where
