@@ -129,9 +129,24 @@ static void process_freqs (float freqs[N_FREQS], FILE * out)
     {
         if (pitch.pitch == stable_pitch || pitch.pitch == stable_pitch + 1)
         {
-            fprintf (out, "%s%d,%.02f Hz,%+.04f,%+.04f\n",
+            fprintf (out, "%s%d,%.02f Hz,%+.04f,%+.04f",
              note_names[pitch.pitch % 12], pitch.pitch / 12, tone.tone_hz,
              tone.harm_stretch, pitch.off_by);
+
+            OvertonePitch opitches[N_OVERTONES];
+            identify_overtones (OCTAVE_STRETCH, tone.overtones_hz, opitches);
+
+            for (int i = 1; i < 6 && i < N_OVERTONES; i++)
+            {
+                if (opitches[i].pitch <= INVALID_VAL)
+                    break;
+
+                fprintf (out, ",,%s%d,%.02f Hz,%+.04f",
+                 note_names[opitches[i].pitch % 12], opitches[i].pitch / 12,
+                 tone.overtones_hz[i], opitches[i].off_by);
+            }
+
+            fprintf (out, "\n");
 
             collect_pitch (& pitch, tone.harm_stretch);
         }

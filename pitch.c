@@ -111,3 +111,22 @@ DetectedPitch pitch_identify (float s, float tone_hz)
 
     return pitch;
 }
+
+void identify_overtones (float s, const float overtones_hz[N_OVERTONES],
+ OvertonePitch opitches[N_OVERTONES])
+{
+    for(int i = 0; i < N_OVERTONES; i++)
+    {
+        float pitch_real = INVALID_VAL;
+        int pitch_rounded = INVALID_VAL;
+
+        if (overtones_hz[i] > INVALID_VAL)
+        {
+            pitch_real = C4_PITCH + ratio_to_semitones (s, overtones_hz[i] / c4_tone_hz (s));
+            pitch_rounded = (int) lroundf (pitch_real);
+        }
+
+        opitches[i].pitch = pitch_rounded;
+        opitches[i].off_by = pitch_real - pitch_rounded;
+    }
+}

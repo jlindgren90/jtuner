@@ -36,6 +36,7 @@
 #define TIMEOUT 10
 
 #define N_FREQS (N_SAMPLES / 2 + 1)
+#define N_OVERTONES 16
 
 #define C4_PITCH 48
 #define A4_PITCH 57
@@ -53,6 +54,7 @@ typedef enum {
 typedef struct {
     float tone_hz;
     float harm_stretch;
+    float overtones_hz[N_OVERTONES];
 } DetectedTone;
 
 typedef struct {
@@ -60,6 +62,11 @@ typedef struct {
     int pitch;
     float off_by;
 } DetectedPitch;
+
+typedef struct {
+    int pitch;
+    float off_by;
+} OvertonePitch;
 
 /* fft.c */
 void fft_init (void);
@@ -74,6 +81,8 @@ void io_cleanup (void);
 float model_harm_stretch (float s, float pitch1, float pitch2);
 float pitch_to_tone_hz (float s, float pitch);
 DetectedPitch pitch_identify (float s, float tone_hz);
+void identify_overtones (float s, const float overtones_hz[N_OVERTONES],
+ OvertonePitch opitches[N_OVERTONES]);
 
 /* tone.c */
 DetectedTone tone_detect (const float freqs[N_FREQS], float target_hz);

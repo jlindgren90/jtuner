@@ -23,7 +23,6 @@
 #include <string.h>
 
 #define N_PEAKS 32
-#define N_OVERTONES 16
 
 #define MIN_FREQ_HZ 20
 #define MAX_FREQ_HZ 10000
@@ -78,7 +77,7 @@ static void find_peaks (const float freqs[N_FREQS], Peak peaks[N_PEAKS])
     }
 }
 
-static float calc_harm_score (const Peak peaks[N_PEAKS], float root_hz)
+static float calc_harm_score (const Peak peaks[N_PEAKS], float root_hz, float overtones_hz[N_OVERTONES])
 {
     if (root_hz < MIN_FREQ_HZ || root_hz > MAX_FREQ_HZ)
         return 0;
@@ -96,6 +95,7 @@ static float calc_harm_score (const Peak peaks[N_PEAKS], float root_hz)
         {
             if (peaks[p].freq_hz > min_harm_hz && peaks[p].freq_hz < max_harm_hz)
             {
+                overtones_hz[t - 1] = peaks[p].freq_hz;
                 score += peaks[p].freq_hz * peaks[p].level;
                 found = true;
                 break;
@@ -154,25 +154,37 @@ DetectedTone tone_detect (const float freqs[N_FREQS], float target_hz)
         max_tone_hz = target_hz * SQRT_2;
     }
 
-    float tone_hz = INVALID_VAL;
-    float topscore = 0;
+    DetectedTone best_tone;
+    best_tone.tone_hz = INVALID_VAL;
+    best_tone.harm_stretch = INVALID_VAL;
+
+    for(int i = 0; i < N_OVERTONES; i++)
+        best_tone.overtones_hz[i] = INVALID_VAL;
+
+    float top_score = 0;
 
     for (int p = 0; p < N_PEAKS; p ++)
     {
         if (peaks[p].freq_hz < min_tone_hz || peaks[p].freq_hz > max_tone_hz)
             continue;
 
-        float score = calc_harm_score (peaks, peaks[p].freq_hz);
+        DetectedTone tone;
+        tone.tone_hz = peaks[p].freq_hz;
+        tone.harm_stretch = INVALID_VAL;
 
-        if (score > topscore)
+        for(int i = 0; i < N_OVERTONES; i++)
+            tone.overtones_hz[i] = INVALID_VAL;
+
+        float score = calc_harm_score (peaks, tone.tone_hz, tone.overtones_hz);
+
+        if (score > top_score)
         {
-            tone_hz = peaks[p].freq_hz;
-            topscore = score;
+            best_tone = tone;
+            top_score = score;
         }
     }
 
-    return (DetectedTone) {
-        .tone_hz = tone_hz,
-        .harm_stretch = calc_harm_stretch (peaks, tone_hz)
-    };
+    best_tone.harm_stretch = calc_harm_stretch (peaks, best_tone.tone_hz);
+
+    return best_tone;
 }
