@@ -158,7 +158,7 @@ DetectedTone tone_detect (const float freqs[N_FREQS], float target_hz)
     best_tone.tone_hz = INVALID_VAL;
     best_tone.harm_stretch = INVALID_VAL;
 
-    for(int i = 0; i < N_OVERTONES; i++)
+    for(int i = 0; i < N_OVERTONES; i ++)
         best_tone.overtones_hz[i] = INVALID_VAL;
 
     float top_score = 0;
@@ -172,7 +172,7 @@ DetectedTone tone_detect (const float freqs[N_FREQS], float target_hz)
         tone.tone_hz = peaks[p].freq_hz;
         tone.harm_stretch = INVALID_VAL;
 
-        for(int i = 0; i < N_OVERTONES; i++)
+        for(int i = 0; i < N_OVERTONES; i ++)
             tone.overtones_hz[i] = INVALID_VAL;
 
         float score = calc_harm_score (peaks, tone.tone_hz, tone.overtones_hz);

@@ -115,7 +115,7 @@ DetectedPitch pitch_identify (float s, float tone_hz)
 void identify_overtones (float s, const float overtones_hz[N_OVERTONES],
  OvertonePitch opitches[N_OVERTONES])
 {
-    for(int i = 0; i < N_OVERTONES; i++)
+    for(int i = 0; i < N_OVERTONES; i ++)
     {
         float pitch_real = INVALID_VAL;
         int pitch_rounded = INVALID_VAL;
