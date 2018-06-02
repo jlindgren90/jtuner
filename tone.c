@@ -134,6 +134,7 @@ static float calc_harm_stretch (const Peak peaks[N_PEAKS], float root_hz)
                 stretchsum += stretch * peaks[p].level;
                 levelsum += peaks[p].level;
                 found = true;
+                break;
             }
         }
 
