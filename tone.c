@@ -36,8 +36,11 @@ typedef struct {
 
 static void find_peaks (const float freqs[N_FREQS], Peak peaks[N_PEAKS])
 {
-    char skip[N_FREQS] = {0};
+    bool skip[N_FREQS];
     int ipeaks[N_PEAKS];
+
+    for (int i = 0; i < N_FREQS; i ++)
+        skip[i] = false;
 
     for (int p = 0; p < N_PEAKS; p ++)
     {
@@ -61,7 +64,8 @@ static void find_peaks (const float freqs[N_FREQS], Peak peaks[N_PEAKS])
         if (skiphigh > N_FREQS - 1)
             skiphigh = N_FREQS - 1;
 
-        memset (skip + skiplow, 1, (size_t) (skiphigh + 1 - skiplow));
+        for (int i = skiplow; i <= skiphigh; i ++)
+            skip[i] = true;
     }
 
     for (int p = 0; p < N_PEAKS; p ++)
