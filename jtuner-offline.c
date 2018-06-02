@@ -34,12 +34,14 @@
 
 #define MAX_COLLECT 100
 
-static float collect_off_by[NUM_PITCHES][MAX_COLLECT];
-static int num_collect_off_by[NUM_PITCHES];
-static float collect_harm_stretch[NUM_PITCHES][MAX_COLLECT];
-static int num_collect_harm_stretch[NUM_PITCHES];
-static float collect_overtones[NUM_PITCHES][OVERTONES_USED][MAX_COLLECT];
-static int num_collect_overtones[NUM_PITCHES][OVERTONES_USED];
+typedef struct {
+    float vals[MAX_COLLECT];
+    int num_vals;
+} Collector;
+
+static Collector collect_off_by[NUM_PITCHES];
+static Collector collect_harm_stretch[NUM_PITCHES];
+static Collector collect_overtones[NUM_PITCHES][OVERTONES_USED];
 
 static const char * note_names[12] =
  {"C", "C♯", "D", "E♭", "E", "F", "F♯", "G", "A♭", "A", "B♭", "B"};
@@ -104,6 +106,12 @@ static void detect_stable_pitch (int pitch)
     }
 }
 
+static void collect_val (Collector * c, float val)
+{
+    if (c->num_vals < MAX_COLLECT)
+        c->vals[c->num_vals ++] = val;
+}
+
 static void collect_pitch (const DetectedPitch * pitch, float harm_stretch,
  const OvertonePitch opitches[N_OVERTONES])
 {
@@ -112,17 +120,10 @@ static void collect_pitch (const DetectedPitch * pitch, float harm_stretch,
 
     int index = pitch->pitch - MIN_PITCH;
 
-    if (num_collect_off_by[index] < MAX_COLLECT)
-    {
-        collect_off_by[index][num_collect_off_by[index]] = pitch->off_by;
-        num_collect_off_by[index] ++;
-    }
+    collect_val (& collect_off_by[index], pitch->off_by);
 
-    if (harm_stretch > INVALID_VAL && num_collect_harm_stretch[index] < MAX_COLLECT)
-    {
-        collect_harm_stretch[index][num_collect_harm_stretch[index]] = harm_stretch;
-        num_collect_harm_stretch[index] ++;
-    }
+    if (harm_stretch > INVALID_VAL)
+        collect_val (& collect_harm_stretch[index], harm_stretch);
 
     for (int i = 0; i < OVERTONES_USED; i ++)
     {
@@ -131,11 +132,7 @@ static void collect_pitch (const DetectedPitch * pitch, float harm_stretch,
         if (opitch->pitch != pitch->pitch + overtone_pitches[i])
             break;
 
-        if (num_collect_overtones[index][i] < MAX_COLLECT)
-        {
-            collect_overtones[index][i][num_collect_overtones[index][i]] = opitch->off_by;
-            num_collect_overtones[index][i] ++;
-        }
+        collect_val (& collect_overtones[index][i], opitch->off_by);
     }
 }
 
@@ -183,15 +180,15 @@ static int compare_float (const void * f1, const void * f2)
            (* (const float *) f1 > * (const float *) f2) ? 1 : 0;
 }
 
-static float compute_median (float * values, int num_values)
+static float compute_median (Collector * c)
 {
-    if (num_values < 1)
+    if (c->num_vals < 1)
         return INVALID_VAL;
 
-    qsort (values, (size_t) num_values, sizeof values[0], compare_float);
+    qsort (c->vals, (size_t) c->num_vals, sizeof (float), compare_float);
 
-    return (num_values % 2) ? values[num_values / 2] :
-           0.5f * (values[num_values / 2] + values[num_values / 2 + 1]);
+    return (c->num_vals % 2) ? c->vals[c->num_vals / 2] :
+           0.5f * (c->vals[c->num_vals / 2] + c->vals[c->num_vals / 2 + 1]);
 }
 
 static void run_offline (FILE * in, FILE * out)
@@ -217,10 +214,8 @@ static void run_offline (FILE * in, FILE * out)
     {
         int pitch = MIN_PITCH + index;
         float model = model_harm_stretch (OCTAVE_STRETCH, pitch, pitch + 12);
-        float harm_stretch = compute_median (collect_harm_stretch[index],
-         num_collect_harm_stretch[index]);
-        float off_by = compute_median (collect_off_by[index],
-         num_collect_off_by[index]);
+        float harm_stretch = compute_median (& collect_harm_stretch[index]);
+        float off_by = compute_median (& collect_off_by[index]);
 
         fprintf (out, "%s%d,%+.02f,%+.02f,%+.02f",
          note_names[pitch % 12], pitch / 12, model, harm_stretch, off_by);
@@ -228,8 +223,7 @@ static void run_offline (FILE * in, FILE * out)
         for (int i = 0; i < OVERTONES_USED; i ++)
         {
             int overtone_pitch = pitch + overtone_pitches[i];
-            float overtone_off_by = compute_median (collect_overtones[index][i],
-             num_collect_overtones[index][i]);
+            float overtone_off_by = compute_median (& collect_overtones[index][i]);
 
             if (overtone_off_by <= INVALID_VAL)
                 break;
