@@ -53,6 +53,7 @@ typedef enum {
 
 typedef struct {
     float tone_hz;
+    float harm_score;
     float harm_stretch;
     float overtones_hz[N_OVERTONES];
 } DetectedTone;
