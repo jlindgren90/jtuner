@@ -78,7 +78,7 @@ static void draw_dial (GtkWidget * widget, cairo_t * cr, int x, int y,
 }
 
 void draw_tuner (GtkWidget * widget, cairo_t * cr, const DetectedTone * tone,
- const DetectedPitch * pitch)
+ const DetectedPitch * pitch, const Intervals * iv)
 {
     GtkAllocation alloc;
     gtk_widget_get_allocation (widget, & alloc);
@@ -87,7 +87,7 @@ void draw_tuner (GtkWidget * widget, cairo_t * cr, const DetectedTone * tone,
     cairo_rectangle (cr, 0, 0, alloc.width, alloc.height);
     cairo_fill (cr);
 
-    char tone_str[16], stretch[32], note[16], off_by[16];
+    char tone_str[16], stretch[32], note[16], off_by[16], iv_str[128];
 
     if (pitch->state == DETECT_NONE)
     {
@@ -104,12 +104,21 @@ void draw_tuner (GtkWidget * widget, cairo_t * cr, const DetectedTone * tone,
         sprintf (off_by, "%+.02f", pitch->off_by);
     }
 
+    iv_str[0] = 0;
+
+    for (int i = 0; i < iv->n_intervals; i ++)
+        sprintf (iv_str + strlen (iv_str), "%s%d %+.02f%s",
+         note_names[iv->intervals[i].pitch % 12], iv->intervals[i].pitch / 12,
+         iv->intervals[i].off_by, (i + 1 < iv->n_intervals) ? "  " : "");
+
     draw_text (widget, cr, 0, alloc.height / 4, alloc.width / 2, note, "Sans 48");
-    draw_text (widget, cr, 0, alloc.height * 3 / 4, alloc.width / 2, tone_str, "Sans 24");
-    draw_text (widget, cr, 0, alloc.height * 7 / 8, alloc.width / 2, stretch, "Sans 12");
+    draw_text (widget, cr, 0, alloc.height * 5 / 8, alloc.width / 2, tone_str, "Sans 24");
+    draw_text (widget, cr, 0, alloc.height * 3 / 4, alloc.width / 2, stretch, "Sans 12");
 
     draw_dial (widget, cr, alloc.width / 2, 0, alloc.width / 2,
      alloc.height * 3 / 4, pitch->state != DETECT_NONE, pitch->off_by);
-    draw_text (widget, cr, alloc.width / 2, alloc.height * 3 / 4,
+    draw_text (widget, cr, alloc.width / 2, alloc.height * 5 / 8,
      alloc.width / 2, off_by, "Sans 24");
+
+    draw_text (widget, cr, 0, alloc.height * 7 / 8, alloc.width, iv_str, "Sans 12");
 }

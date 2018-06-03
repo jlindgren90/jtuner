@@ -25,6 +25,6 @@
 #include <gtk/gtk.h>
 
 void draw_tuner (GtkWidget * widget, cairo_t * cr, const DetectedTone * tone,
- const DetectedPitch * pitch);
+ const DetectedPitch * pitch, const Intervals * iv);
 
 #endif // JTUNER_DRAW_H

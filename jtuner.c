@@ -31,6 +31,7 @@ static float target_octave = 0;
 
 static DetectedTone tone;
 static DetectedPitch pitch;
+static Intervals intervals;
 
 static GtkWidget * tuner;
 static bool quit_flag;
@@ -45,7 +46,7 @@ static gboolean redraw (GtkWidget * window, GdkEventExpose * event)
 {
     cairo_t * cr = gdk_cairo_create (gtk_widget_get_window (window));
     pthread_mutex_lock (& mutex);
-    draw_tuner (window, cr, & tone, & pitch);
+    draw_tuner (window, cr, & tone, & pitch, & intervals);
     pthread_mutex_unlock (& mutex);
     cairo_destroy (cr);
     return TRUE;
@@ -110,6 +111,7 @@ static void * io_worker (void * arg)
         {
             tone = new_tone;
             pitch = new_pitch;
+            intervals = identify_intervals (octave_stretch, pitch.pitch, tone.overtones_hz);
             g_timeout_add (0, queue_redraw, NULL);
         }
 
