@@ -162,7 +162,7 @@ static void process_freqs (float freqs[N_FREQS], FILE * out)
 
                 fprintf (out, ",,%s%d,%.02f Hz,%+.04f",
                  note_names[opitch->pitch % 12], opitch->pitch / 12,
-                 tone.overtones_hz[i], opitch->off_by);
+                 tone.overtones_hz[1 + i], opitch->off_by);
             }
 
             fprintf (out, "\n");
