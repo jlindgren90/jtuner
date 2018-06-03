@@ -29,8 +29,7 @@
 
 #define OCTAVE_STRETCH 0.05f
 
-#define NUM_PITCHES (MAX_PITCH + 1 - MIN_PITCH)
-#define OVERTONES_USED 5
+#define N_PITCHES (MAX_PITCH + 1 - MIN_PITCH)
 
 #define MAX_COLLECT 100
 
@@ -39,14 +38,12 @@ typedef struct {
     int num_vals;
 } Collector;
 
-static Collector collect_off_by[NUM_PITCHES];
-static Collector collect_harm_stretch[NUM_PITCHES];
-static Collector collect_overtones[NUM_PITCHES][OVERTONES_USED];
+static Collector collect_off_by[N_PITCHES];
+static Collector collect_harm_stretch[N_PITCHES];
+static Collector collect_intervals[N_PITCHES][N_INTERVALS];
 
 static const char * note_names[12] =
  {"C", "C♯", "D", "E♭", "E", "F", "F♯", "G", "A♭", "A", "B♭", "B"};
-static const int overtone_pitches[OVERTONES_USED] =
- {12, 19, 24, 28, 31};
 
 static void error_exit (const char * error)
 {
@@ -113,7 +110,7 @@ static void collect_val (Collector * c, float val)
 }
 
 static void collect_pitch (const DetectedPitch * pitch, float harm_stretch,
- const OvertonePitch opitches[N_OVERTONES])
+ const Intervals * iv)
 {
     if (pitch->pitch < MIN_PITCH || pitch->pitch > MAX_PITCH)
         return;
@@ -125,15 +122,8 @@ static void collect_pitch (const DetectedPitch * pitch, float harm_stretch,
     if (harm_stretch > INVALID_VAL)
         collect_val (& collect_harm_stretch[index], harm_stretch);
 
-    for (int i = 0; i < OVERTONES_USED; i ++)
-    {
-        const OvertonePitch * opitch = & opitches[1 + i];
-
-        if (opitch->pitch != pitch->pitch + overtone_pitches[i])
-            break;
-
-        collect_val (& collect_overtones[index][i], opitch->off_by);
-    }
+    for (int i = 0; i < iv->n_intervals; i ++)
+        collect_val (& collect_intervals[index][i], iv->intervals[i].off_by);
 }
 
 static void process_freqs (float freqs[N_FREQS], FILE * out)
@@ -150,24 +140,16 @@ static void process_freqs (float freqs[N_FREQS], FILE * out)
              note_names[pitch.pitch % 12], pitch.pitch / 12, tone.tone_hz,
              tone.harm_stretch, pitch.off_by);
 
-            OvertonePitch opitches[N_OVERTONES];
-            identify_overtones (OCTAVE_STRETCH, tone.overtones_hz, opitches);
+            Intervals iv = identify_intervals (OCTAVE_STRETCH, pitch.pitch, tone.overtones_hz);
 
-            for (int i = 0; i < OVERTONES_USED; i ++)
-            {
-                const OvertonePitch * opitch = & opitches[1 + i];
-
-                if (opitch->pitch != pitch.pitch + overtone_pitches[i])
-                    break;
-
+            for (int i = 0; i < iv.n_intervals; i ++)
                 fprintf (out, ",,%s%d,%.02f Hz,%+.04f",
-                 note_names[opitch->pitch % 12], opitch->pitch / 12,
-                 tone.overtones_hz[1 + i], opitch->off_by);
-            }
+                 note_names[iv.intervals[i].pitch % 12], iv.intervals[i].pitch / 12,
+                 tone.overtones_hz[1 + i], iv.intervals[i].off_by);
 
             fprintf (out, "\n");
 
-            collect_pitch (& pitch, tone.harm_stretch, opitches);
+            collect_pitch (& pitch, tone.harm_stretch, & iv);
         }
 
         detect_stable_pitch (pitch.pitch);
@@ -210,7 +192,7 @@ static void run_offline (FILE * in, FILE * out)
     fprintf (out, "\nMedians\n");
     fprintf (out, "Note,Model,Harm,Err\n");
 
-    for (int index = 0; index < NUM_PITCHES; index ++)
+    for (int index = 0; index < N_PITCHES; index ++)
     {
         int pitch = MIN_PITCH + index;
         float model = model_harm_stretch (OCTAVE_STRETCH, pitch, pitch + 12);
@@ -220,16 +202,16 @@ static void run_offline (FILE * in, FILE * out)
         fprintf (out, "%s%d,%+.02f,%+.02f,%+.02f",
          note_names[pitch % 12], pitch / 12, model, harm_stretch, off_by);
 
-        for (int i = 0; i < OVERTONES_USED; i ++)
+        for (int i = 0; i < N_INTERVALS; i ++)
         {
-            int overtone_pitch = pitch + overtone_pitches[i];
-            float overtone_off_by = compute_median (& collect_overtones[index][i]);
+            int interval_pitch = pitch + interval_widths[i];
+            float interval_off_by = compute_median (& collect_intervals[index][i]);
 
-            if (overtone_off_by <= INVALID_VAL)
+            if (interval_off_by <= INVALID_VAL)
                 break;
 
-            fprintf (out, ",,%s%d,%+.02f", note_names[overtone_pitch % 12],
-             overtone_pitch / 12, overtone_off_by);
+            fprintf (out, ",,%s%d,%+.02f", note_names[interval_pitch % 12],
+             interval_pitch / 12, interval_off_by);
         }
 
         fprintf (out, "\n");

@@ -21,6 +21,8 @@
 
 #include <math.h>
 
+const int interval_widths[N_INTERVALS] = {12, 19, 24, 28, 31};
+
 /* The following procedures use a quadratic adjustment to implement "stretched"
  * tuning, where each semitone n (relative to middle C) is tuned sharper or
  * flatter than equal temperament by s/2*(n/12)^2 semitones.  This results in
@@ -112,21 +114,34 @@ DetectedPitch pitch_identify (float s, float tone_hz)
     return pitch;
 }
 
-void identify_overtones (float s, const float overtones_hz[N_OVERTONES],
- OvertonePitch opitches[N_OVERTONES])
+Intervals identify_intervals (float s, int root_pitch, const float overtones_hz[N_OVERTONES])
 {
-    for(int i = 0; i < N_OVERTONES; i ++)
+    Intervals iv = {
+        .n_intervals = 0
+    };
+
+    if (root_pitch <= INVALID_VAL)
+        return iv;
+
+    for(int i = 0; i < N_INTERVALS; i ++)
     {
         float pitch_real = INVALID_VAL;
         int pitch_rounded = INVALID_VAL;
 
-        if (overtones_hz[i] > INVALID_VAL)
+        if (overtones_hz[1 + i] > INVALID_VAL)
         {
-            pitch_real = C4_PITCH + ratio_to_semitones (s, overtones_hz[i] / c4_tone_hz (s));
+            pitch_real = C4_PITCH + ratio_to_semitones (s, overtones_hz[1 + i] / c4_tone_hz (s));
             pitch_rounded = (int) lroundf (pitch_real);
         }
 
-        opitches[i].pitch = pitch_rounded;
-        opitches[i].off_by = pitch_real - pitch_rounded;
+        if (pitch_rounded != root_pitch + interval_widths[i])
+            break;
+
+        iv.intervals[iv.n_intervals ++] = (Interval) {
+            .pitch = pitch_rounded,
+            .off_by = pitch_real - pitch_rounded
+        };
     }
+
+    return iv;
 }
