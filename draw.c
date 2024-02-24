@@ -1,6 +1,6 @@
 /*
  * JTuner - draw.c
- * Copyright 2013-2018 John Lindgren
+ * Copyright 2013-2024 John Lindgren
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -89,6 +89,8 @@ void draw_tuner (GtkWidget * widget, cairo_t * cr, const DetectedTone * tone,
 
     char tone_str[16], stretch[32], note[16], off_by[16], iv_str[128];
 
+    iv_str[0] = 0;
+
     if (pitch->state == DETECT_NONE)
     {
         sprintf (tone_str, "0.00 Hz");
@@ -102,14 +104,24 @@ void draw_tuner (GtkWidget * widget, cairo_t * cr, const DetectedTone * tone,
         sprintf (stretch, "harmonics %+.02f", tone->harm_stretch);
         sprintf (note, "%s%d", note_names[pitch->pitch % 12], pitch->pitch / 12);
         sprintf (off_by, "%+.02f", pitch->off_by);
+
+        for (int i = 0; i < iv->n_intervals; i ++)
+        {
+            int iv_pitch = iv->intervals[i].pitch;
+            sprintf (iv_str + strlen (iv_str), "%s%d %+.02f%s",
+             note_names[iv_pitch % 12], iv_pitch / 12, iv->intervals[i].off_by,
+             (i + 1 < N_INTERVALS) ? "  " : "");
+        }
+
+        /* print blanks for missing intervals */
+        for (int i = iv->n_intervals; i < N_INTERVALS; i ++)
+        {
+            int iv_pitch = pitch->pitch + interval_widths[i];
+            sprintf (iv_str + strlen (iv_str), "%s%d —.—%s",
+             note_names[iv_pitch % 12], iv_pitch / 12,
+             (i + 1 < N_INTERVALS) ? "  " : "");
+        }
     }
-
-    iv_str[0] = 0;
-
-    for (int i = 0; i < iv->n_intervals; i ++)
-        sprintf (iv_str + strlen (iv_str), "%s%d %+.02f%s",
-         note_names[iv->intervals[i].pitch % 12], iv->intervals[i].pitch / 12,
-         iv->intervals[i].off_by, (i + 1 < iv->n_intervals) ? "  " : "");
 
     draw_text (widget, cr, 0, alloc.height / 4, alloc.width / 2, note, "Sans 48");
     draw_text (widget, cr, 0, alloc.height * 5 / 8, alloc.width / 2, tone_str, "Sans 24");
