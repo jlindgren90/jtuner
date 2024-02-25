@@ -109,7 +109,7 @@ static void collect_val (Collector * c, float val)
         c->vals[c->num_vals ++] = val;
 }
 
-static void collect_pitch (const DetectedPitch * pitch, float harm_stretch,
+static void collect_pitch (const RoundedPitch * pitch, float harm_stretch,
  const Intervals * iv)
 {
     if (pitch->pitch < MIN_PITCH || pitch->pitch > MAX_PITCH)
@@ -131,9 +131,9 @@ static void process_freqs (float freqs[N_FREQS], FILE * out)
     float min_tone_hz = pitch_to_tone_hz (OCTAVE_STRETCH, stable_pitch - 3);
     float max_tone_hz = pitch_to_tone_hz (OCTAVE_STRETCH, stable_pitch + 3);
     DetectedTone tone = tone_detect (freqs, min_tone_hz, max_tone_hz);
-    DetectedPitch pitch = pitch_identify (OCTAVE_STRETCH, tone.tone_hz);
+    RoundedPitch pitch = round_to_pitch (OCTAVE_STRETCH, tone.tone_hz);
 
-    if (pitch.state == DETECT_UPDATE)
+    if (pitch.pitch > INVALID_VAL)
     {
         if (pitch.pitch == stable_pitch || pitch.pitch == stable_pitch + 1)
         {
