@@ -141,6 +141,21 @@ static DetectedTone analyze_tone (const Peak peaks[N_PEAKS], float tone_hz)
     return tone;
 }
 
+static bool is_same_tone (float tone_hz, float ref_hz)
+{
+    return tone_hz > ref_hz * 0.95f && tone_hz < ref_hz * 1.05f;
+}
+
+static bool is_overtone (float tone_hz, float ref_hz)
+{
+    return is_same_tone (tone_hz, ref_hz * 2)
+     || is_same_tone (tone_hz, ref_hz * 3)
+     || is_same_tone (tone_hz, ref_hz * 4)
+     || is_same_tone (tone_hz, ref_hz * 5);
+}
+
+static float last_tone_hz = INVALID_VAL;
+
 DetectedTone tone_detect (const float freqs[N_FREQS], float target_hz)
 {
     Peak peaks[N_PEAKS];
@@ -164,9 +179,21 @@ DetectedTone tone_detect (const float freqs[N_FREQS], float target_hz)
 
         DetectedTone tone = analyze_tone (peaks, peaks[p].freq_hz);
 
+        /*
+         * Experimental tweaks:
+         * 1. Favor the same peak found last cycle (reduces "jumpiness")
+         * 2. Favor low notes that may be hidden by their own overtones
+         */
+        if (last_tone_hz > INVALID_VAL &&
+         (is_same_tone (tone.tone_hz, last_tone_hz) ||
+         (tone.tone_hz < 200 && is_overtone (last_tone_hz, tone.tone_hz))))
+            tone.harm_score *= (tone.tone_hz < 100) ? 4 : 2;
+
         if (tone.harm_score > best_tone.harm_score)
             best_tone = tone;
     }
+
+    last_tone_hz = best_tone.tone_hz;
 
     return best_tone;
 }
