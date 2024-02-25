@@ -1,14 +1,18 @@
 SRCS=draw.c fft.c io.c jtuner.c pitch.c tone.c
+HDRS=draw.h jtuner.h
+
 OFFLINE_SRCS=fft.c jtuner-offline.c pitch.c tone.c
+OFFLINE_HDRS=jtuner.h
+
 FLAGS=-std=gnu99 -Wall -O2 -g -ffast-math
 LIBS=-lm -lasound `pkg-config --cflags --libs gtk+-2.0`
 
 all : jtuner jtuner-offline
 
-jtuner : ${SRCS}
+jtuner : ${SRCS} ${HDRS}
 	gcc ${FLAGS} ${SRCS} ${LIBS} -o jtuner
 
-jtuner-offline : ${OFFLINE_SRCS}
+jtuner-offline : ${OFFLINE_SRCS} ${OFFLINE_HDRS}
 	gcc ${FLAGS} ${OFFLINE_SRCS} -lm -o jtuner-offline
 
 install :
