@@ -65,12 +65,8 @@ float model_harm_stretch (float s, float pitch1, float pitch2)
     return adj2 - adj1;
 }
 
-DetectedPitch pitch_identify (float s, float tone_hz)
+RoundedPitch round_to_pitch (float s, float tone_hz)
 {
-    static int last_pitch = INVALID_VAL;
-    static int timein = 0;
-    static int timeout = 0;
-
     float pitch_real = INVALID_VAL;
     int pitch_rounded = INVALID_VAL;
 
@@ -80,7 +76,21 @@ DetectedPitch pitch_identify (float s, float tone_hz)
         pitch_rounded = (int) lroundf (pitch_real);
     }
 
-    if (pitch_rounded == last_pitch)
+    return (RoundedPitch) {
+        .pitch = pitch_rounded,
+        .off_by = pitch_real - pitch_rounded
+    };
+}
+
+DetectedPitch pitch_identify (float s, float tone_hz)
+{
+    static int last_pitch = INVALID_VAL;
+    static int timein = 0;
+    static int timeout = 0;
+
+    RoundedPitch rounded = round_to_pitch (s, tone_hz);
+
+    if (rounded.pitch == last_pitch)
     {
         if (timein)
             timein --;
@@ -90,7 +100,7 @@ DetectedPitch pitch_identify (float s, float tone_hz)
     }
     else
     {
-        last_pitch = pitch_rounded;
+        last_pitch = rounded.pitch;
         timein = TIMEIN - 1;
 
         if (timeout)
@@ -99,15 +109,15 @@ DetectedPitch pitch_identify (float s, float tone_hz)
 
     DetectedPitch pitch = {
         .state = DETECT_NONE,
-        .pitch = pitch_rounded,
-        .off_by = pitch_real - pitch_rounded
+        .pitch = rounded.pitch,
+        .off_by = rounded.off_by
     };
 
     if (timeout)
     {
         if (timein)
             pitch.state = DETECT_KEEP;
-        else if (pitch_rounded > INVALID_VAL)
+        else if (rounded.pitch > INVALID_VAL)
             pitch.state = DETECT_UPDATE;
     }
 
@@ -125,22 +135,12 @@ Intervals identify_intervals (float s, int root_pitch, const float overtones_hz[
 
     for(int i = 0; i < N_INTERVALS; i ++)
     {
-        float pitch_real = INVALID_VAL;
-        int pitch_rounded = INVALID_VAL;
+        RoundedPitch rounded = round_to_pitch (s, overtones_hz[1 + i]);
 
-        if (overtones_hz[1 + i] > INVALID_VAL)
-        {
-            pitch_real = C4_PITCH + ratio_to_semitones (s, overtones_hz[1 + i] / c4_tone_hz (s));
-            pitch_rounded = (int) lroundf (pitch_real);
-        }
-
-        if (pitch_rounded != root_pitch + interval_widths[i])
+        if (rounded.pitch != root_pitch + interval_widths[i])
             break;
 
-        iv.intervals[iv.n_intervals ++] = (Interval) {
-            .pitch = pitch_rounded,
-            .off_by = pitch_real - pitch_rounded
-        };
+        iv.intervals[iv.n_intervals ++] = rounded;
     }
 
     return iv;

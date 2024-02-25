@@ -68,11 +68,11 @@ typedef struct {
 typedef struct {
     int pitch;
     float off_by;
-} Interval;
+} RoundedPitch;
 
 typedef struct {
     int n_intervals;
-    Interval intervals[N_INTERVALS];
+    RoundedPitch intervals[N_INTERVALS];
 } Intervals;
 
 /* fft.c */
@@ -89,6 +89,7 @@ extern const int interval_widths[N_INTERVALS];
 
 float model_harm_stretch (float s, float pitch1, float pitch2);
 float pitch_to_tone_hz (float s, float pitch);
+RoundedPitch round_to_pitch (float s, float tone_hz);
 DetectedPitch pitch_identify (float s, float tone_hz);
 Intervals identify_intervals (float s, int root_pitch, const float overtones_hz[N_OVERTONES]);
 
