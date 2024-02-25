@@ -10,7 +10,8 @@ LIBS=-lm -lasound `pkg-config --cflags --libs gtk+-2.0`
 all : jtuner jtuner-offline
 
 jtuner : ${SRCS} ${HDRS}
-	gcc ${FLAGS} ${SRCS} ${LIBS} -o jtuner
+	gcc ${FLAGS} ${SRCS} ${LIBS} -o jtuner \
+	 -DGLIB_VERSION_MIN_REQUIRED=GLIB_VERSION_2_32
 
 jtuner-offline : ${OFFLINE_SRCS} ${OFFLINE_HDRS}
 	gcc ${FLAGS} ${OFFLINE_SRCS} -lm -o jtuner-offline
