@@ -128,8 +128,9 @@ static void collect_pitch (const DetectedPitch * pitch, float harm_stretch,
 
 static void process_freqs (float freqs[N_FREQS], FILE * out)
 {
-    float target_hz = pitch_to_tone_hz (OCTAVE_STRETCH, stable_pitch);
-    DetectedTone tone = tone_detect (freqs, target_hz);
+    float min_tone_hz = pitch_to_tone_hz (OCTAVE_STRETCH, stable_pitch - 3);
+    float max_tone_hz = pitch_to_tone_hz (OCTAVE_STRETCH, stable_pitch + 3);
+    DetectedTone tone = tone_detect (freqs, min_tone_hz, max_tone_hz);
     DetectedPitch pitch = pitch_identify (OCTAVE_STRETCH, tone.tone_hz);
 
     if (pitch.state == DETECT_UPDATE)

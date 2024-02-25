@@ -24,6 +24,9 @@
 
 #include "draw.h"
 
+#define MIN_FREQ_HZ 20
+#define MAX_FREQ_HZ 10000
+
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static float octave_stretch = 0.05f;
@@ -99,11 +102,16 @@ static void * io_worker (void * arg)
 
         pthread_mutex_lock (& mutex);
 
-        float target_hz = INVALID_VAL;
-        if (target_octave > 0)
-            target_hz = pitch_to_tone_hz (octave_stretch, 12 * target_octave);
+        float min_tone_hz = MIN_FREQ_HZ;
+        float max_tone_hz = MAX_FREQ_HZ;
 
-        DetectedTone new_tone = tone_detect (freqs, target_hz);
+        if (target_octave > 0)
+        {
+            min_tone_hz = pitch_to_tone_hz (octave_stretch, 12 * target_octave - 6);
+            max_tone_hz = pitch_to_tone_hz (octave_stretch, 12 * target_octave + 6);
+        }
+
+        DetectedTone new_tone = tone_detect (freqs, min_tone_hz, max_tone_hz);
         DetectedPitch new_pitch = pitch_identify (octave_stretch, new_tone.tone_hz);
 
         if (new_pitch.state == DETECT_UPDATE ||

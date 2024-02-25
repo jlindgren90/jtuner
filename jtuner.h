@@ -93,6 +93,6 @@ DetectedPitch pitch_identify (float s, float tone_hz);
 Intervals identify_intervals (float s, int root_pitch, const float overtones_hz[N_OVERTONES]);
 
 /* tone.c */
-DetectedTone tone_detect (const float freqs[N_FREQS], float target_hz);
+DetectedTone tone_detect (const float freqs[N_FREQS], float min_tone_hz, float max_tone_hz);
 
 #endif // JTUNER_H

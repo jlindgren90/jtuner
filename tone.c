@@ -22,10 +22,6 @@
 #include <math.h>
 
 #define N_PEAKS 32
-
-#define MIN_FREQ_HZ 20
-#define MAX_FREQ_HZ 10000
-
 #define SQRT_2 1.41421356f
 
 typedef struct {
@@ -156,19 +152,10 @@ static bool is_overtone (float tone_hz, float ref_hz)
 
 static float last_tone_hz = INVALID_VAL;
 
-DetectedTone tone_detect (const float freqs[N_FREQS], float target_hz)
+DetectedTone tone_detect (const float freqs[N_FREQS], float min_tone_hz, float max_tone_hz)
 {
     Peak peaks[N_PEAKS];
     find_peaks (freqs, peaks);
-
-    float min_tone_hz = MIN_FREQ_HZ;
-    float max_tone_hz = MAX_FREQ_HZ;
-
-    if (target_hz > INVALID_VAL)
-    {
-        min_tone_hz = target_hz / SQRT_2;
-        max_tone_hz = target_hz * SQRT_2;
-    }
 
     DetectedTone best_tone = invalid_tone ();
 
